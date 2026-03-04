@@ -311,18 +311,26 @@ export default function Home() {
                 <div className="flex-1 relative">
                   <Input
                     data-testid="input-youtube-url"
-                    type="url"
+                    type="text"
                     placeholder="Paste a YouTube link here..."
-                    value={url}
-                    onChange={(e) => handleUrlChange(e.target.value)}
+                    value={videoTitle || url}
+                    onChange={(e) => {
+                      if (videoTitle) {
+                        setVideoTitle(null);
+                        setUrl("");
+                      } else {
+                        handleUrlChange(e.target.value);
+                      }
+                    }}
+                    onFocus={() => {
+                      if (videoTitle) {
+                        setVideoTitle(null);
+                        setUrl(url);
+                      }
+                    }}
                     disabled={!!isProcessing}
                   />
-                  {videoTitle && !isProcessing && (
-                    <p className="text-xs text-muted-foreground mt-1 truncate" data-testid="text-preview-title">
-                      {previewMutation.isPending ? "Loading..." : videoTitle}
-                    </p>
-                  )}
-                  {previewMutation.isPending && !videoTitle && (
+                  {previewMutation.isPending && (
                     <p className="text-xs text-muted-foreground mt-1">
                       Fetching video info...
                     </p>
