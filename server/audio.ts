@@ -11,6 +11,16 @@ const execFileAsync = promisify(execFile);
 const PROCESSING_DIR = path.join(process.cwd(), "processing");
 const YT_DLP_PATH = path.join(process.cwd(), ".pythonlibs", "bin", "yt-dlp");
 
+function getNodePath(): string {
+  try {
+    const { execSync } = require("child_process");
+    return execSync("which node", { encoding: "utf8" }).trim();
+  } catch {
+    return "node";
+  }
+}
+const NODE_PATH = getNodePath();
+
 if (!fs.existsSync(PROCESSING_DIR)) {
   fs.mkdirSync(PROCESSING_DIR, { recursive: true });
 }
@@ -50,7 +60,7 @@ export async function fetchVideoTitle(url: string): Promise<string> {
   try {
     const { stdout } = await execFileAsync(
       YT_DLP_PATH,
-      ["--no-playlist", "--js-runtimes", "node", "--remote-components", "ejs:github", "--print", "title", url],
+      ["--no-playlist", "--js-runtimes", `node:${NODE_PATH}`, "--print", "title", url],
       { timeout: 15000 }
     );
     if (stdout.trim()) return stdout.trim();
@@ -87,8 +97,7 @@ export async function downloadYoutubeAudio(
 
     const baseArgs = [
       "--no-playlist",
-      "--js-runtimes", "node",
-      "--remote-components", "ejs:github",
+      "--js-runtimes", `node:${NODE_PATH}`,
     ];
     const outputArgs = ["-x", "--audio-quality", "0", "-o", outputTemplate, url];
 

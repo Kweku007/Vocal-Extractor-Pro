@@ -44,6 +44,7 @@ A web application that extracts backing vocals from YouTube videos, detects the 
 
 - ffmpeg (nix) - Audio processing
 - yt-dlp (.pythonlibs/bin/yt-dlp) - YouTube audio download
+- yt-dlp-ejs (Python package) - Required for YouTube JS challenge solving
 - Python 3 (.pythonlibs/bin/python3) - Key detection, Demucs
 
 ## Key NPM Dependencies
@@ -58,10 +59,11 @@ A web application that extracts backing vocals from YouTube videos, detects the 
 - demucs - ML vocal separation
 - librosa - Audio analysis and key detection
 - numpy - Numerical processing
+- yt-dlp-ejs - YouTube EJS challenge solver scripts (required alongside yt-dlp)
 
 ## YouTube Download Strategy
 
-Uses PO (Proof of Origin) tokens generated via bgutils-js to authenticate with YouTube's BotGuard system. This bypasses bot detection on cloud/datacenter IPs. Falls back to android_vr, mediaconnect, and default player clients if PO token generation fails.
+Uses yt-dlp with yt-dlp-ejs for JavaScript challenge solving (signature deciphering, n-transform). The absolute Node.js path is resolved at startup and passed via `--js-runtimes node:/path/to/node` to ensure it works in production where PATH may differ. PO tokens generated via bgutils-js authenticate with YouTube's BotGuard system. Falls back to android_vr and default player clients if PO token config fails.
 
 ## Key Detection
 
