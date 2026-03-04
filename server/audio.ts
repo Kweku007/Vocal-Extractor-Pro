@@ -49,7 +49,7 @@ export async function fetchVideoTitle(url: string): Promise<string> {
   try {
     const { stdout } = await execFileAsync(
       YT_DLP_PATH,
-      ["--no-playlist", "--print", "title", url],
+      ["--no-playlist", "--js-runtimes", "node", "--remote-components", "ejs:github", "--print", "title", url],
       { timeout: 15000 }
     );
     if (stdout.trim()) return stdout.trim();
@@ -86,7 +86,7 @@ export async function downloadYoutubeAudio(
     try {
       const { stdout: titleOut } = await execFileAsync(
         YT_DLP_PATH,
-        ["--no-playlist", "--print", "title", url],
+        ["--no-playlist", "--js-runtimes", "node", "--remote-components", "ejs:github", "--print", "title", url],
         { timeout: 30000 }
       );
       title = titleOut.trim() || "Unknown Title";
@@ -96,6 +96,8 @@ export async function downloadYoutubeAudio(
       YT_DLP_PATH,
       [
         "--no-playlist",
+        "--js-runtimes", "node",
+        "--remote-components", "ejs:github",
         "-x",
         "--audio-quality", "0",
         "-o", outputTemplate,
