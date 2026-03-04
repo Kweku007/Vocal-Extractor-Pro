@@ -238,7 +238,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-hidden min-h-screen">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-primary/5 rounded-full blur-3xl" />
 
