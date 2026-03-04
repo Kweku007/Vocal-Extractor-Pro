@@ -216,8 +216,7 @@ export default function Home() {
   const currentDisplayMinor = (() => {
     if (!currentDisplayKey) return null;
     const idx = MUSICAL_KEYS.indexOf(currentDisplayKey);
-    const minorIdx = ((idx - 3) % 12 + 12) % 12;
-    return RELATIVE_MINOR_KEYS[minorIdx];
+    return RELATIVE_MINOR_KEYS[idx];
   })();
 
   const detectedKeyLabel = (() => {
@@ -462,8 +461,7 @@ export default function Home() {
                         </SelectTrigger>
                         <SelectContent>
                           {MUSICAL_KEYS.map((key, idx) => {
-                            const minorIdx = ((idx - 3) % 12 + 12) % 12;
-                            const minor = RELATIVE_MINOR_KEYS[minorIdx];
+                            const minor = RELATIVE_MINOR_KEYS[idx];
                             return (
                               <SelectItem
                                 key={key}
