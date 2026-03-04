@@ -342,7 +342,7 @@ export default function Home() {
                     data-testid="button-home"
                     type="button"
                     onClick={handleNewExtraction}
-                    variant="outline"
+                    variant="default"
                     size="default"
                   >
                     <HomeIcon className="w-4 h-4 mr-1" />
