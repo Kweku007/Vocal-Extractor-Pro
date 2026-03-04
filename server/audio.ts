@@ -101,38 +101,46 @@ export async function downloadYoutubeAudio(
     ];
     const outputArgs = ["-x", "--audio-quality", "0", "-o", outputTemplate, url];
 
-    let potConfigs: string[][] = [];
+    const dlConfigs: string[][] = [
+      [...baseArgs, ...outputArgs],
+    ];
+
     try {
       const { visitorData, poToken } = await generatePoToken();
       console.log(`[${jobId}] PO token generated successfully`);
-      potConfigs = [
-        [...baseArgs, "--extractor-args", `youtube:player_client=web;player_skip=webpage,configs,initial_data;visitor_data=${visitorData};po_token=web.gvs+${poToken}`, ...outputArgs],
-      ];
+      dlConfigs.push(
+        [...baseArgs, "--extractor-args", `youtube:player_client=web;visitor_data=${visitorData};po_token=web.gvs+${poToken}`, ...outputArgs],
+      );
     } catch (err: any) {
       console.warn(`[${jobId}] PO token generation failed: ${err.message}`);
     }
 
-    const dlConfigs = [
-      ...potConfigs,
-      [...baseArgs, "--extractor-args", "youtube:player_client=android_vr,web", ...outputArgs],
-      [...baseArgs, ...outputArgs],
-    ];
-
     let lastError: Error | null = null;
     for (let i = 0; i < dlConfigs.length; i++) {
       try {
+        const args = i === 0
+          ? ["--verbose", ...dlConfigs[i]]
+          : dlConfigs[i];
         console.log(`[${jobId}] Download attempt ${i + 1}/${dlConfigs.length}`);
-        await execFileAsync(
+        const result = await execFileAsync(
           YT_DLP_PATH,
-          dlConfigs[i],
+          args,
           { timeout: 120000, maxBuffer: 50 * 1024 * 1024 }
         );
+        if (i === 0 && result.stderr) {
+          const debugLines = result.stderr.split("\n").filter((l: string) =>
+            /ejs|jsc|challenge|pot|PO Token|format|runtime|WARNING|ERROR/i.test(l)
+          ).slice(0, 15);
+          if (debugLines.length > 0) {
+            console.log(`[${jobId}] yt-dlp debug:`, debugLines.join(" | "));
+          }
+        }
         lastError = null;
         break;
       } catch (err: any) {
         lastError = err;
         const stderr = err.stderr || err.message || "";
-        console.error(`[${jobId}] Download attempt ${i + 1} failed: ${stderr.slice(0, 500)}`);
+        console.error(`[${jobId}] Download attempt ${i + 1} failed: ${stderr.slice(0, 800)}`);
         const partialFiles = fs.readdirSync(PROCESSING_DIR).filter(f => f.startsWith(`${jobId}_raw.`));
         for (const f of partialFiles) {
           try { fs.unlinkSync(path.join(PROCESSING_DIR, f)); } catch {}
