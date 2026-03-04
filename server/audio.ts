@@ -93,22 +93,63 @@ export async function extractBackingVocals(
   jobId: string
 ): Promise<string> {
   const outputPath = path.join(PROCESSING_DIR, `${jobId}_backing.wav`);
+  const demucsOutputDir = path.join(PROCESSING_DIR, `${jobId}_demucs`);
+  const pythonPath = path.join(process.cwd(), ".pythonlibs", "bin", "python3");
 
   try {
+    console.log(`[${jobId}] Running Demucs ML separation...`);
     await execFileAsync(
-      "ffmpeg",
+      pythonPath,
       [
-        "-i", inputPath,
-        "-af", "pan=stereo|c0=c0-c1|c1=c1-c0,highpass=f=200,lowpass=f=8000,equalizer=f=3000:t=q:w=1:g=3",
-        outputPath,
-        "-y",
+        "-m", "demucs",
+        "--two-stems", "vocals",
+        "-n", "htdemucs",
+        "--out", demucsOutputDir,
+        inputPath,
       ],
-      { timeout: 120000 }
+      { timeout: 600000, maxBuffer: 50 * 1024 * 1024 }
     );
 
+    const modelDir = path.join(demucsOutputDir, "htdemucs");
+    const dirs = fs.existsSync(modelDir) ? fs.readdirSync(modelDir) : [];
+    if (dirs.length === 0) {
+      throw new Error("Demucs produced no output");
+    }
+
+    const trackDir = path.join(modelDir, dirs[0]);
+    const vocalsPath = path.join(trackDir, "vocals.wav");
+
+    if (!fs.existsSync(vocalsPath)) {
+      throw new Error("Demucs did not produce vocals.wav");
+    }
+
+    fs.copyFileSync(vocalsPath, outputPath);
+
+    try {
+      fs.rmSync(demucsOutputDir, { recursive: true, force: true });
+    } catch {}
+
+    console.log(`[${jobId}] Demucs separation complete`);
     return outputPath;
   } catch (error: any) {
-    throw new Error(`Failed to extract backing vocals: ${error.message}`);
+    console.error(`[${jobId}] Demucs failed: ${error.message}`);
+
+    console.log(`[${jobId}] Falling back to FFmpeg separation...`);
+    try {
+      await execFileAsync(
+        "ffmpeg",
+        [
+          "-i", inputPath,
+          "-af", "pan=stereo|c0=c0-c1|c1=c1-c0,highpass=f=200,lowpass=f=8000,equalizer=f=3000:t=q:w=1:g=3",
+          outputPath,
+          "-y",
+        ],
+        { timeout: 120000 }
+      );
+      return outputPath;
+    } catch (fallbackError: any) {
+      throw new Error(`Failed to extract backing vocals: ${fallbackError.message}`);
+    }
   }
 }
 

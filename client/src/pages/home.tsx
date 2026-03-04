@@ -35,7 +35,7 @@ import { MUSICAL_KEYS } from "@shared/schema";
 
 const STATUS_LABELS: Record<string, string> = {
   downloading: "Downloading audio from YouTube...",
-  separating: "Extracting backing vocals...",
+  separating: "Isolating vocals with AI (this may take a few minutes)...",
   detecting_key: "Detecting musical key...",
   complete: "Processing complete!",
   error: "An error occurred",
