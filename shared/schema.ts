@@ -43,7 +43,7 @@ export interface DetectedKeyInfo {
 
 export interface ProcessingJob {
   id: string;
-  status: "downloading" | "separating" | "detecting_key" | "complete" | "error";
+  status: "downloading" | "uploading" | "separating" | "detecting_key" | "complete" | "error";
   progress: number;
   url: string;
   title?: string;
