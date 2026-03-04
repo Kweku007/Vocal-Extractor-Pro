@@ -26,7 +26,7 @@ import {
   VolumeX,
   SkipBack,
   Sparkles,
-  Home,
+  Home as HomeIcon,
   Music2,
 } from "lucide-react";
 import { SiYoutube } from "react-icons/si";
@@ -345,7 +345,7 @@ export default function Home() {
                     variant="outline"
                     size="default"
                   >
-                    <Home className="w-4 h-4 mr-1" />
+                    <HomeIcon className="w-4 h-4 mr-1" />
                     Home
                   </Button>
                 ) : (
