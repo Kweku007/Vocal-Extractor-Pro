@@ -92,23 +92,21 @@ export async function downloadYoutubeAudio(
     ];
     const outputArgs = ["-x", "--audio-quality", "0", "-o", outputTemplate, url];
 
-    let potArgs: string[] = [];
+    let potConfigs: string[][] = [];
     try {
       const { visitorData, poToken } = await generatePoToken();
-      potArgs = [
-        "--extractor-args", `youtube:player_client=web;visitor_data=${visitorData};po_token=web.gvs+${poToken}`,
-      ];
       console.log(`[${jobId}] PO token generated successfully`);
+      potConfigs = [
+        [...baseArgs, "--extractor-args", `youtube:player_client=web;player_skip=webpage,configs;visitor_data=${visitorData};po_token=web.gvs+${poToken}`, ...outputArgs],
+        [...baseArgs, "--extractor-args", `youtube:player_client=web;visitor_data=${visitorData};po_token=web.gvs+${poToken}`, ...outputArgs],
+      ];
     } catch (err: any) {
       console.warn(`[${jobId}] PO token generation failed: ${err.message}`);
     }
 
     const dlConfigs = [
-      ...(potArgs.length > 0
-        ? [[...baseArgs, ...potArgs, ...outputArgs]]
-        : []),
+      ...potConfigs,
       [...baseArgs, "--extractor-args", "youtube:player_client=android_vr,web", ...outputArgs],
-      [...baseArgs, "--extractor-args", "youtube:player_client=mediaconnect", ...outputArgs],
       [...baseArgs, ...outputArgs],
     ];
 
@@ -125,7 +123,8 @@ export async function downloadYoutubeAudio(
         break;
       } catch (err: any) {
         lastError = err;
-        console.error(`[${jobId}] Download attempt ${i + 1} failed: ${err.message?.slice(0, 200)}`);
+        const stderr = err.stderr || err.message || "";
+        console.error(`[${jobId}] Download attempt ${i + 1} failed: ${stderr.slice(0, 500)}`);
         const partialFiles = fs.readdirSync(PROCESSING_DIR).filter(f => f.startsWith(`${jobId}_raw.`));
         for (const f of partialFiles) {
           try { fs.unlinkSync(path.join(PROCESSING_DIR, f)); } catch {}
