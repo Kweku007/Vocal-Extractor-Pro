@@ -27,7 +27,6 @@ import {
   SkipBack,
   ArrowRight,
   Music2,
-  Waves,
 } from "lucide-react";
 import { SiYoutube } from "react-icons/si";
 import type { ProcessingJob, MusicalKey } from "@shared/schema";
@@ -301,7 +300,7 @@ export default function Home() {
             <Card className="p-6 mb-6" data-testid="card-processing">
               <div className="flex items-center gap-3 mb-4">
                 <div className="relative">
-                  <Waves className="w-5 h-5 text-primary animate-pulse" />
+                  <Music2 className="w-5 h-5 text-primary animate-pulse" />
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-sm" data-testid="text-status">
@@ -518,7 +517,7 @@ export default function Home() {
                   Vocal Extraction
                 </Badge>
                 <Badge variant="outline">
-                  <Waves className="w-3 h-3 mr-1" />
+                  <Music2 className="w-3 h-3 mr-1" />
                   Pitch Shifting
                 </Badge>
                 <Badge variant="outline">
