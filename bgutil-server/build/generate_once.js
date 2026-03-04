@@ -1,6 +1,3 @@
-import { BG, buildURL } from "bgutils-js";
-import { JSDOM } from "jsdom";
-import { Innertube } from "youtubei.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
@@ -48,6 +45,10 @@ const CACHE_PATH = path.resolve(cachedir, "cache.json");
 
 (async () => {
   try {
+    const { BG } = await import("bgutils-js");
+    const { JSDOM } = await import("jsdom");
+    const { Innertube } = await import("youtubei.js");
+
     let contentBinding = opts.contentBinding;
     let innertubeContext;
 
