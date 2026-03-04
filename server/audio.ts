@@ -4,7 +4,6 @@ import path from "path";
 import fs from "fs";
 import type { MusicalKey, DetectedKeyInfo } from "@shared/schema";
 import { MUSICAL_KEYS, RELATIVE_MINOR_KEYS } from "@shared/schema";
-import { generatePoToken } from "./pot-token";
 
 const execFileAsync = promisify(execFile);
 
@@ -24,6 +23,12 @@ const NODE_PATH = getNodePath();
 if (!fs.existsSync(PROCESSING_DIR)) {
   fs.mkdirSync(PROCESSING_DIR, { recursive: true });
 }
+
+const bgutilScriptPath = path.join(process.cwd(), "bgutil-server", "build", "generate_once.js");
+console.log(`[audio] Node.js path: ${NODE_PATH}`);
+console.log(`[audio] yt-dlp path: ${YT_DLP_PATH} (exists: ${fs.existsSync(YT_DLP_PATH)})`);
+console.log(`[audio] bgutil script: ${bgutilScriptPath} (exists: ${fs.existsSync(bgutilScriptPath)})`);
+
 
 export async function fetchVideoTitle(url: string): Promise<string> {
   try {
@@ -61,7 +66,13 @@ export async function fetchVideoTitle(url: string): Promise<string> {
     const { stdout } = await execFileAsync(
       YT_DLP_PATH,
       ["--no-playlist", "--js-runtimes", `node:${NODE_PATH}`, "--print", "title", url],
-      { timeout: 15000 }
+      {
+        timeout: 15000,
+        env: {
+          ...process.env,
+          NODE_PATH: path.join(process.cwd(), "node_modules"),
+        },
+      }
     );
     if (stdout.trim()) return stdout.trim();
   } catch {}
@@ -95,42 +106,50 @@ export async function downloadYoutubeAudio(
   try {
     let title = await fetchVideoTitle(url);
 
+    const bgutilServerHome = path.join(process.cwd(), "bgutil-server");
     const baseArgs = [
       "--no-playlist",
       "--js-runtimes", `node:${NODE_PATH}`,
+      "--extractor-args", `youtubepot-bgutilscript:server_home=${bgutilServerHome}`,
     ];
     const outputArgs = ["-x", "--audio-quality", "0", "-o", outputTemplate, url];
 
-    const dlConfigs: string[][] = [
-      [...baseArgs, ...outputArgs],
+    const dlConfigs: { label: string; args: string[] }[] = [
+      {
+        label: "mweb client (plugin auto-PO token)",
+        args: [...baseArgs, "--extractor-args", "youtube:player_client=mweb", ...outputArgs],
+      },
+      {
+        label: "default clients",
+        args: [...baseArgs, ...outputArgs],
+      },
+      {
+        label: "android_vr client (no PO token needed)",
+        args: [...baseArgs, "--extractor-args", "youtube:player_client=android_vr", ...outputArgs],
+      },
     ];
-
-    try {
-      const { visitorData, poToken } = await generatePoToken();
-      console.log(`[${jobId}] PO token generated successfully`);
-      dlConfigs.push(
-        [...baseArgs, "--extractor-args", `youtube:player_client=web;visitor_data=${visitorData};po_token=web.gvs+${poToken}`, ...outputArgs],
-      );
-    } catch (err: any) {
-      console.warn(`[${jobId}] PO token generation failed: ${err.message}`);
-    }
 
     let lastError: Error | null = null;
     for (let i = 0; i < dlConfigs.length; i++) {
       try {
-        const args = i === 0
-          ? ["--verbose", ...dlConfigs[i]]
-          : dlConfigs[i];
-        console.log(`[${jobId}] Download attempt ${i + 1}/${dlConfigs.length}`);
+        const args = ["--verbose", ...dlConfigs[i].args];
+        console.log(`[${jobId}] Download attempt ${i + 1}/${dlConfigs.length}: ${dlConfigs[i].label}`);
         const result = await execFileAsync(
           YT_DLP_PATH,
           args,
-          { timeout: 120000, maxBuffer: 50 * 1024 * 1024 }
+          {
+            timeout: 120000,
+            maxBuffer: 50 * 1024 * 1024,
+            env: {
+              ...process.env,
+              NODE_PATH: path.join(process.cwd(), "node_modules"),
+            },
+          }
         );
-        if (i === 0 && result.stderr) {
+        if (result.stderr) {
           const debugLines = result.stderr.split("\n").filter((l: string) =>
-            /ejs|jsc|challenge|pot|PO Token|format|runtime|WARNING|ERROR/i.test(l)
-          ).slice(0, 15);
+            /plugin|pot|PO.Token|bgutil|provider|format|WARNING|ERROR/i.test(l)
+          ).slice(0, 20);
           if (debugLines.length > 0) {
             console.log(`[${jobId}] yt-dlp debug:`, debugLines.join(" | "));
           }
@@ -140,7 +159,7 @@ export async function downloadYoutubeAudio(
       } catch (err: any) {
         lastError = err;
         const stderr = err.stderr || err.message || "";
-        console.error(`[${jobId}] Download attempt ${i + 1} failed: ${stderr.slice(0, 800)}`);
+        console.error(`[${jobId}] Download attempt ${i + 1} (${dlConfigs[i].label}) failed: ${stderr.slice(0, 4000)}`);
         const partialFiles = fs.readdirSync(PROCESSING_DIR).filter(f => f.startsWith(`${jobId}_raw.`));
         for (const f of partialFiles) {
           try { fs.unlinkSync(path.join(PROCESSING_DIR, f)); } catch {}
