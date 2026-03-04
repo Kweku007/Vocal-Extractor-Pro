@@ -12,6 +12,7 @@ import {
   convertToMp3,
   cleanupJob,
   scheduleCleanup,
+  fetchVideoTitle,
   PROCESSING_DIR,
 } from "./audio";
 import path from "path";
@@ -21,6 +22,19 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  app.post("/api/preview", async (req, res) => {
+    try {
+      const parsed = youtubeUrlSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: parsed.error.errors[0].message });
+      }
+      const title = await fetchVideoTitle(parsed.data.url);
+      res.json({ title });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch video info" });
+    }
+  });
+
   app.post("/api/process", async (req, res) => {
     try {
       const parsed = youtubeUrlSchema.safeParse(req.body);

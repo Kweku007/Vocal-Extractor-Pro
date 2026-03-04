@@ -14,6 +14,15 @@ if (!fs.existsSync(PROCESSING_DIR)) {
   fs.mkdirSync(PROCESSING_DIR, { recursive: true });
 }
 
+export async function fetchVideoTitle(url: string): Promise<string> {
+  const { stdout } = await execFileAsync(
+    YT_DLP_PATH,
+    ["--no-playlist", "--print", "title", url],
+    { timeout: 15000 }
+  );
+  return stdout.trim() || "Unknown Title";
+}
+
 const JOB_TTL_MS = 30 * 60 * 1000;
 
 const jobTimers = new Map<string, NodeJS.Timeout>();

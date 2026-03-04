@@ -42,6 +42,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default function Home() {
   const [url, setUrl] = useState("");
+  const [videoTitle, setVideoTitle] = useState<string | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
   const [semitones, setSemitones] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -75,6 +76,45 @@ export default function Home() {
       });
     },
   });
+
+  const previewMutation = useMutation({
+    mutationFn: async (youtubeUrl: string) => {
+      const res = await apiRequest("POST", "/api/preview", { url: youtubeUrl });
+      return res.json();
+    },
+    onSuccess: (data: { title: string }) => {
+      setVideoTitle(data.title);
+    },
+    onError: () => {
+      setVideoTitle(null);
+    },
+  });
+
+  const isYoutubeUrl = (value: string) => {
+    return /(?:youtube\.com|youtu\.be)/.test(value);
+  };
+
+  const handleUrlChange = (value: string) => {
+    setUrl(value);
+    setVideoTitle(null);
+    if (isYoutubeUrl(value.trim())) {
+      previewMutation.mutate(value.trim());
+    }
+  };
+
+  const handleNewExtraction = () => {
+    setUrl("");
+    setVideoTitle(null);
+    setJobId(null);
+    setSemitones(0);
+    setAudioSrc(null);
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+  };
 
   const { data: job } = useQuery<ProcessingJob>({
     queryKey: ["/api/jobs", jobId],
@@ -268,15 +308,26 @@ export default function Home() {
                 <div className="flex items-center justify-center w-10 h-10 rounded-md bg-red-500/10 shrink-0">
                   <SiYoutube className="w-5 h-5 text-red-500" />
                 </div>
-                <Input
-                  data-testid="input-youtube-url"
-                  type="url"
-                  placeholder="Paste a YouTube link here..."
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  disabled={!!isProcessing}
-                  className="flex-1"
-                />
+                <div className="flex-1 relative">
+                  <Input
+                    data-testid="input-youtube-url"
+                    type="url"
+                    placeholder="Paste a YouTube link here..."
+                    value={url}
+                    onChange={(e) => handleUrlChange(e.target.value)}
+                    disabled={!!isProcessing}
+                  />
+                  {videoTitle && !isProcessing && (
+                    <p className="text-xs text-muted-foreground mt-1 truncate" data-testid="text-preview-title">
+                      {previewMutation.isPending ? "Loading..." : videoTitle}
+                    </p>
+                  )}
+                  {previewMutation.isPending && !videoTitle && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Fetching video info...
+                    </p>
+                  )}
+                </div>
                 <Button
                   data-testid="button-extract"
                   type="submit"
@@ -513,6 +564,16 @@ export default function Home() {
                   </div>
                 </div>
               </Card>
+              <div className="flex justify-center mt-4">
+                <Button
+                  data-testid="button-new-extraction"
+                  variant="outline"
+                  onClick={handleNewExtraction}
+                >
+                  <SkipBack className="w-4 h-4 mr-2" />
+                  New Extraction
+                </Button>
+              </div>
             </div>
           )}
 
