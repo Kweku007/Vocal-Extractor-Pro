@@ -5,6 +5,8 @@ description = "Add your description here"
 requires-python = ">=3.11"
 dependencies = [
     "demucs>=4.0.1",
+    "librosa>=0.11.0",
+    "numpy>=2.4.2",
     "torch>=2.10.0",
     "torchaudio>=2.10.0",
     "torchcodec>=0.10.0",

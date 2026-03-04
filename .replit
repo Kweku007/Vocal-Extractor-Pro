@@ -4,7 +4,7 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["ffmpeg", "pkg-config", "yt-dlp"]
+packages = ["ffmpeg", "ffmpeg-full", "pkg-config", "yt-dlp"]
 
 [[ports]]
 localPort = 5000
