@@ -481,18 +481,17 @@ export default function Home() {
                       {isShifting && (
                         <Loader2 className="w-4 h-4 animate-spin text-primary" />
                       )}
+                      <div className="ml-auto">
+                        <Button
+                          data-testid="button-download"
+                          onClick={handleDownload}
+                          disabled={isShifting}
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Download MP3
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="flex justify-end pt-2">
-                    <Button
-                      data-testid="button-download"
-                      onClick={handleDownload}
-                      disabled={isShifting}
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      Download MP3
-                    </Button>
                   </div>
                 </div>
               </Card>
