@@ -26,7 +26,7 @@ import {
   VolumeX,
   SkipBack,
   ArrowRight,
-  Mic2,
+  Music2,
   Waves,
 } from "lucide-react";
 import { SiYoutube } from "react-icons/si";
@@ -246,7 +246,7 @@ export default function Home() {
         <div className="relative max-w-2xl mx-auto px-4 pt-16 pb-10">
           <div className="text-center mb-10">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
-              <Mic2 className="w-8 h-8 text-primary" />
+              <Music2 className="w-8 h-8 text-primary" />
             </div>
             <h1
               className="text-4xl font-bold tracking-tight mb-3"
