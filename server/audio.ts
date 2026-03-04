@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import type { MusicalKey, DetectedKeyInfo } from "@shared/schema";
 import { MUSICAL_KEYS, RELATIVE_MINOR_KEYS } from "@shared/schema";
+import { generatePoToken } from "./pot-token";
 
 const execFileAsync = promisify(execFile);
 
@@ -91,13 +92,24 @@ export async function downloadYoutubeAudio(
     ];
     const outputArgs = ["-x", "--audio-quality", "0", "-o", outputTemplate, url];
 
+    let potArgs: string[] = [];
+    try {
+      const { visitorData, poToken } = await generatePoToken();
+      potArgs = [
+        "--extractor-args", `youtube:player_client=web;visitor_data=${visitorData};po_token=web.gvs+${poToken}`,
+      ];
+      console.log(`[${jobId}] PO token generated successfully`);
+    } catch (err: any) {
+      console.warn(`[${jobId}] PO token generation failed: ${err.message}`);
+    }
+
     const dlConfigs = [
+      ...(potArgs.length > 0
+        ? [[...baseArgs, ...potArgs, ...outputArgs]]
+        : []),
+      [...baseArgs, "--extractor-args", "youtube:player_client=android_vr,web", ...outputArgs],
       [...baseArgs, "--extractor-args", "youtube:player_client=mediaconnect", ...outputArgs],
       [...baseArgs, ...outputArgs],
-      [...baseArgs, "--extractor-args", "youtube:player_client=web_music,web", "--geo-bypass", ...outputArgs],
-      [...baseArgs, "--extractor-args", "youtube:player_client=ios,web",
-        "--user-agent", "com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)",
-        ...outputArgs],
     ];
 
     let lastError: Error | null = null;
