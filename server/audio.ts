@@ -97,8 +97,7 @@ export async function downloadYoutubeAudio(
       const { visitorData, poToken } = await generatePoToken();
       console.log(`[${jobId}] PO token generated successfully`);
       potConfigs = [
-        [...baseArgs, "--extractor-args", `youtube:player_client=web;player_skip=webpage,configs;visitor_data=${visitorData};po_token=web.gvs+${poToken}`, ...outputArgs],
-        [...baseArgs, "--extractor-args", `youtube:player_client=web;visitor_data=${visitorData};po_token=web.gvs+${poToken}`, ...outputArgs],
+        [...baseArgs, "--extractor-args", `youtube:player_client=web;player_skip=webpage,configs,initial_data;visitor_data=${visitorData};po_token=web.gvs+${poToken}`, ...outputArgs],
       ];
     } catch (err: any) {
       console.warn(`[${jobId}] PO token generation failed: ${err.message}`);
