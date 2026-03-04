@@ -294,6 +294,24 @@ export default function Home() {
                 </Button>
               </div>
             </Card>
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
+              <Badge variant="outline">
+                <Music className="w-3 h-3 mr-1" />
+                Key Detection
+              </Badge>
+              <Badge variant="outline">
+                <Music2 className="w-3 h-3 mr-1" />
+                Vocal Extraction
+              </Badge>
+              <Badge variant="outline">
+                <Music2 className="w-3 h-3 mr-1" />
+                Pitch Shifting
+              </Badge>
+              <Badge variant="outline">
+                <Download className="w-3 h-3 mr-1" />
+                MP3 Download
+              </Badge>
+            </div>
           </form>
 
           {isProcessing && job && (
@@ -498,34 +516,6 @@ export default function Home() {
             </div>
           )}
 
-          {!isProcessing && !job && (
-            <div className="text-center pt-8" data-testid="section-empty-state">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted/50 mb-4">
-                <Music2 className="w-10 h-10 text-muted-foreground/50" />
-              </div>
-              <p className="text-muted-foreground">
-                Paste a YouTube link above to get started
-              </p>
-              <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
-                <Badge variant="outline">
-                  <Music className="w-3 h-3 mr-1" />
-                  Key Detection
-                </Badge>
-                <Badge variant="outline">
-                  <Music2 className="w-3 h-3 mr-1" />
-                  Vocal Extraction
-                </Badge>
-                <Badge variant="outline">
-                  <Music2 className="w-3 h-3 mr-1" />
-                  Pitch Shifting
-                </Badge>
-                <Badge variant="outline">
-                  <Download className="w-3 h-3 mr-1" />
-                  MP3 Download
-                </Badge>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
