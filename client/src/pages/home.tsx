@@ -25,7 +25,8 @@ import {
   Volume2,
   VolumeX,
   SkipBack,
-  ArrowRight,
+  Sparkles,
+  Home,
   Music2,
 } from "lucide-react";
 import { SiYoutube } from "react-icons/si";
@@ -336,21 +337,34 @@ export default function Home() {
                     </p>
                   )}
                 </div>
-                <Button
-                  data-testid="button-extract"
-                  type="submit"
-                  disabled={!url.trim() || !!isProcessing}
-                  size="default"
-                >
-                  {isProcessing ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <>
-                      Extract
-                      <ArrowRight className="w-4 h-4 ml-1" />
-                    </>
-                  )}
-                </Button>
+                {job?.status === "complete" ? (
+                  <Button
+                    data-testid="button-home"
+                    type="button"
+                    onClick={handleNewExtraction}
+                    variant="outline"
+                    size="default"
+                  >
+                    <Home className="w-4 h-4 mr-1" />
+                    Home
+                  </Button>
+                ) : (
+                  <Button
+                    data-testid="button-extract"
+                    type="submit"
+                    disabled={!url.trim() || !!isProcessing}
+                    size="default"
+                  >
+                    {isProcessing ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-1" />
+                        Extract
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
             </Card>
             <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
@@ -572,16 +586,6 @@ export default function Home() {
                   </div>
                 </div>
               </Card>
-              <div className="flex justify-center mt-4">
-                <Button
-                  data-testid="button-new-extraction"
-                  variant="outline"
-                  onClick={handleNewExtraction}
-                >
-                  <SkipBack className="w-4 h-4 mr-2" />
-                  New Extraction
-                </Button>
-              </div>
             </div>
           )}
 
