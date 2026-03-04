@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import { SiYoutube } from "react-icons/si";
 import type { ProcessingJob, MusicalKey } from "@shared/schema";
-import { MUSICAL_KEYS } from "@shared/schema";
+import { MUSICAL_KEYS, RELATIVE_MINOR_KEYS } from "@shared/schema";
 
 const STATUS_LABELS: Record<string, string> = {
   downloading: "Downloading audio from YouTube...",
@@ -213,6 +213,27 @@ export default function Home() {
     return MUSICAL_KEYS[newIdx];
   })();
 
+  const currentDisplayMinor = (() => {
+    if (!currentDisplayKey) return null;
+    const idx = MUSICAL_KEYS.indexOf(currentDisplayKey);
+    const minorIdx = ((idx - 3) % 12 + 12) % 12;
+    return RELATIVE_MINOR_KEYS[minorIdx];
+  })();
+
+  const detectedKeyLabel = (() => {
+    if (!job?.detectedKeyInfo) {
+      if (!job?.detectedKey) return null;
+      return `${job.detectedKey} Major`;
+    }
+    const info = job.detectedKeyInfo;
+    return `${info.major} Major (${info.minor})`;
+  })();
+
+  const currentKeyLabel = (() => {
+    if (!currentDisplayKey || !currentDisplayMinor) return null;
+    return `${currentDisplayKey} Major (${currentDisplayMinor})`;
+  })();
+
   const isProcessing =
     processMutation.isPending ||
     (job && job.status !== "complete" && job.status !== "error");
@@ -323,15 +344,15 @@ export default function Home() {
                       Backing vocals extracted
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <Badge variant="outline" data-testid="badge-detected-key">
                       <Music className="w-3 h-3 mr-1" />
-                      Detected: {job.detectedKey}
+                      Detected: {detectedKeyLabel}
                     </Badge>
-                    {semitones !== 0 && currentDisplayKey && (
+                    {semitones !== 0 && currentKeyLabel && (
                       <Badge data-testid="badge-current-key">
                         <Music className="w-3 h-3 mr-1" />
-                        Current: {currentDisplayKey}
+                        Current: {currentKeyLabel}
                       </Badge>
                     )}
                   </div>
@@ -434,21 +455,25 @@ export default function Home() {
                         disabled={isShifting}
                       >
                         <SelectTrigger
-                          className="w-32"
+                          className="w-48"
                           data-testid="select-key"
                         >
                           <SelectValue placeholder="Select key" />
                         </SelectTrigger>
                         <SelectContent>
-                          {MUSICAL_KEYS.map((key) => (
-                            <SelectItem
-                              key={key}
-                              value={key}
-                              data-testid={`option-key-${key}`}
-                            >
-                              {key} Major
-                            </SelectItem>
-                          ))}
+                          {MUSICAL_KEYS.map((key, idx) => {
+                            const minorIdx = ((idx - 3) % 12 + 12) % 12;
+                            const minor = RELATIVE_MINOR_KEYS[minorIdx];
+                            return (
+                              <SelectItem
+                                key={key}
+                                value={key}
+                                data-testid={`option-key-${key}`}
+                              >
+                                {key} Major ({minor})
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
                       <span className="text-sm text-muted-foreground">

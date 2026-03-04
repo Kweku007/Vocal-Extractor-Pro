@@ -19,11 +19,27 @@ export const youtubeUrlSchema = z.object({
 export type YoutubeUrlInput = z.infer<typeof youtubeUrlSchema>;
 
 export const MUSICAL_KEYS = [
+  "C", "Db", "D", "Eb", "E", "F",
+  "F#", "G", "Ab", "A", "Bb", "B",
+] as const;
+
+export const MUSICAL_KEYS_SHARP = [
   "C", "C#", "D", "D#", "E", "F",
   "F#", "G", "G#", "A", "A#", "B",
 ] as const;
 
 export type MusicalKey = (typeof MUSICAL_KEYS)[number];
+
+export const RELATIVE_MINOR_KEYS = [
+  "Am", "Bbm", "Bm", "Cm", "C#m", "Dm",
+  "D#m", "Ebm", "Em", "Fm", "F#m", "Gm",
+] as const;
+
+export interface DetectedKeyInfo {
+  major: MusicalKey;
+  minor: string;
+  mode: "major" | "minor";
+}
 
 export interface ProcessingJob {
   id: string;
@@ -32,6 +48,7 @@ export interface ProcessingJob {
   url: string;
   title?: string;
   detectedKey?: MusicalKey;
+  detectedKeyInfo?: DetectedKeyInfo;
   audioFile?: string;
   errorMessage?: string;
 }

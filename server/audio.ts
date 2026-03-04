@@ -2,8 +2,8 @@ import { execFile } from "child_process";
 import { promisify } from "util";
 import path from "path";
 import fs from "fs";
-import type { MusicalKey } from "@shared/schema";
-import { MUSICAL_KEYS } from "@shared/schema";
+import type { MusicalKey, DetectedKeyInfo } from "@shared/schema";
+import { MUSICAL_KEYS, RELATIVE_MINOR_KEYS } from "@shared/schema";
 
 const execFileAsync = promisify(execFile);
 
@@ -153,48 +153,66 @@ export async function extractBackingVocals(
   }
 }
 
-export async function detectKey(audioPath: string): Promise<MusicalKey> {
+function pearsonCorrelation(a: number[], b: number[]): number {
+  const n = a.length;
+  let meanA = 0, meanB = 0;
+  for (let i = 0; i < n; i++) {
+    meanA += a[i];
+    meanB += b[i];
+  }
+  meanA /= n;
+  meanB /= n;
+
+  let num = 0, denA = 0, denB = 0;
+  for (let i = 0; i < n; i++) {
+    const da = a[i] - meanA;
+    const db = b[i] - meanB;
+    num += da * db;
+    denA += da * da;
+    denB += db * db;
+  }
+  return num / (Math.sqrt(denA * denB) + 1e-10);
+}
+
+export async function detectKey(audioPath: string): Promise<DetectedKeyInfo> {
   try {
     const pcmPath = audioPath.replace(".wav", "_pcm.raw");
     await execFileAsync(
       "ffmpeg",
-      ["-i", audioPath, "-f", "f32le", "-acodec", "pcm_f32le", "-ac", "1", "-ar", "11025", "-t", "15", pcmPath, "-y"],
+      ["-i", audioPath, "-f", "f32le", "-acodec", "pcm_f32le", "-ac", "1", "-ar", "22050", "-t", "30", pcmPath, "-y"],
       { timeout: 30000 }
     );
 
     const buffer = fs.readFileSync(pcmPath);
     const samples = new Float32Array(buffer.buffer, buffer.byteOffset, buffer.length / 4);
 
-    const sampleRate = 11025;
+    const sampleRate = 22050;
     const chromagram = new Array(12).fill(0);
 
-    const noteFrequencies = [
+    const baseFreqs = [
       261.63, 277.18, 293.66, 311.13, 329.63, 349.23,
       369.99, 392.00, 415.30, 440.00, 466.16, 493.88,
     ];
 
-    const frameSize = 2048;
-    const hopSize = 1024;
-    const numFrames = Math.min(
-      Math.floor((samples.length - frameSize) / hopSize),
-      100
-    );
+    const frameSize = 4096;
+    const hopSize = 2048;
+    const totalFrames = Math.floor((samples.length - frameSize) / hopSize);
+    const numFrames = Math.min(totalFrames, 300);
 
     for (let frame = 0; frame < numFrames; frame++) {
       const start = frame * hopSize;
       for (let noteIdx = 0; noteIdx < 12; noteIdx++) {
-        const freq = noteFrequencies[noteIdx];
         let totalMag = 0;
-
-        for (let octave = 0; octave < 3; octave++) {
-          const octFreq = freq * Math.pow(2, octave - 1);
-          const k = (octFreq / sampleRate) * frameSize;
+        for (let octave = -1; octave <= 3; octave++) {
+          const freq = baseFreqs[noteIdx] * Math.pow(2, octave);
+          if (freq < 50 || freq > sampleRate / 2) continue;
+          const k = (freq / sampleRate) * frameSize;
 
           let real = 0, imag = 0;
           for (let n = 0; n < frameSize; n++) {
             const sample = samples[start + n] || 0;
-            const angle = (2 * Math.PI * k * n) / frameSize;
             const window = 0.5 * (1 - Math.cos((2 * Math.PI * n) / (frameSize - 1)));
+            const angle = (2 * Math.PI * k * n) / frameSize;
             real += sample * window * Math.cos(angle);
             imag -= sample * window * Math.sin(angle);
           }
@@ -205,9 +223,11 @@ export async function detectKey(audioPath: string): Promise<MusicalKey> {
     }
 
     const majorProfile = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
+    const minorProfile = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
 
     let bestKey = 0;
     let bestCorr = -Infinity;
+    let bestMode: "major" | "minor" = "major";
 
     for (let shift = 0; shift < 12; shift++) {
       const rotated = new Array(12);
@@ -215,35 +235,38 @@ export async function detectKey(audioPath: string): Promise<MusicalKey> {
         rotated[i] = chromagram[(i + shift) % 12];
       }
 
-      let meanA = 0, meanB = 0;
-      for (let i = 0; i < 12; i++) {
-        meanA += rotated[i];
-        meanB += majorProfile[i];
-      }
-      meanA /= 12;
-      meanB /= 12;
+      const corrMajor = pearsonCorrelation(rotated, majorProfile);
+      const corrMinor = pearsonCorrelation(rotated, minorProfile);
 
-      let num = 0, denA = 0, denB = 0;
-      for (let i = 0; i < 12; i++) {
-        const a = rotated[i] - meanA;
-        const b = majorProfile[i] - meanB;
-        num += a * b;
-        denA += a * a;
-        denB += b * b;
-      }
-      const corr = num / (Math.sqrt(denA) * Math.sqrt(denB) + 1e-10);
-
-      if (corr > bestCorr) {
-        bestCorr = corr;
+      if (corrMajor > bestCorr) {
+        bestCorr = corrMajor;
         bestKey = shift;
+        bestMode = "major";
+      }
+      if (corrMinor > bestCorr) {
+        bestCorr = corrMinor;
+        bestKey = shift;
+        bestMode = "minor";
       }
     }
 
     try { fs.unlinkSync(pcmPath); } catch {}
 
-    return MUSICAL_KEYS[bestKey];
-  } catch {
-    return "C";
+    const major = MUSICAL_KEYS[bestKey];
+    const minor = RELATIVE_MINOR_KEYS[bestKey];
+
+    const relativeMajorIdx = (bestKey + 3) % 12;
+    const result: DetectedKeyInfo = bestMode === "minor"
+      ? { major: MUSICAL_KEYS[relativeMajorIdx], minor, mode: "minor" }
+      : { major, minor: RELATIVE_MINOR_KEYS[bestKey], mode: "major" };
+
+    console.log(`Key detection - chromagram: [${chromagram.map(v => v.toFixed(1)).join(', ')}]`);
+    console.log(`Key detection - best match: ${result.major} major / ${result.minor} (mode: ${result.mode}, corr: ${bestCorr.toFixed(4)})`);
+
+    return result;
+  } catch (error: any) {
+    console.error("Key detection error:", error.message);
+    return { major: "C", minor: "Am", mode: "major" };
   }
 }
 

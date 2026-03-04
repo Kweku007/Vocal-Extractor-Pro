@@ -203,13 +203,14 @@ async function processAudio(jobId: string, url: string) {
   storage.updateJob(jobId, { progress: 75 });
 
   storage.updateJob(jobId, { status: "detecting_key", progress: 80 });
-  const detectedKey = await detectKey(backingPath);
-  console.log(`[${jobId}] Detected key: ${detectedKey}`);
+  const keyInfo = await detectKey(backingPath);
+  console.log(`[${jobId}] Detected key: ${keyInfo.major} major / ${keyInfo.minor} (${keyInfo.mode})`);
 
   storage.updateJob(jobId, {
     status: "complete",
     progress: 100,
-    detectedKey,
+    detectedKey: keyInfo.major,
+    detectedKeyInfo: keyInfo,
     audioFile: backingPath,
   });
 
