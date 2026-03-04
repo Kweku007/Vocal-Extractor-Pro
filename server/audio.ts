@@ -82,18 +82,9 @@ export async function downloadYoutubeAudio(
   const outputTemplate = path.join(PROCESSING_DIR, `${jobId}_raw.%(ext)s`);
 
   try {
-    let title = "Unknown Title";
-    try {
-      const { stdout: titleOut } = await execFileAsync(
-        YT_DLP_PATH,
-        ["--no-playlist", "--js-runtimes", "node", "--remote-components", "ejs:github", "--print", "title", url],
-        { timeout: 30000 }
-      );
-      title = titleOut.trim() || "Unknown Title";
-    } catch {}
+    let title = await fetchVideoTitle(url);
 
-    await execFileAsync(
-      YT_DLP_PATH,
+    const dlConfigs = [
       [
         "--no-playlist",
         "--js-runtimes", "node",
@@ -103,8 +94,51 @@ export async function downloadYoutubeAudio(
         "-o", outputTemplate,
         url,
       ],
-      { timeout: 120000, maxBuffer: 50 * 1024 * 1024 }
-    );
+      [
+        "--no-playlist",
+        "--js-runtimes", "node",
+        "--remote-components", "ejs:github",
+        "--extractor-args", "youtube:player_client=web_music,web",
+        "--geo-bypass",
+        "-x",
+        "--audio-quality", "0",
+        "-o", outputTemplate,
+        url,
+      ],
+      [
+        "--no-playlist",
+        "--js-runtimes", "node",
+        "--remote-components", "ejs:github",
+        "--extractor-args", "youtube:player_client=ios,web",
+        "--user-agent", "com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)",
+        "-x",
+        "--audio-quality", "0",
+        "-o", outputTemplate,
+        url,
+      ],
+    ];
+
+    let lastError: Error | null = null;
+    for (let i = 0; i < dlConfigs.length; i++) {
+      try {
+        console.log(`[${jobId}] Download attempt ${i + 1}/${dlConfigs.length}`);
+        await execFileAsync(
+          YT_DLP_PATH,
+          dlConfigs[i],
+          { timeout: 120000, maxBuffer: 50 * 1024 * 1024 }
+        );
+        lastError = null;
+        break;
+      } catch (err: any) {
+        lastError = err;
+        console.error(`[${jobId}] Download attempt ${i + 1} failed: ${err.message?.slice(0, 200)}`);
+        const partialFiles = fs.readdirSync(PROCESSING_DIR).filter(f => f.startsWith(`${jobId}_raw.`));
+        for (const f of partialFiles) {
+          try { fs.unlinkSync(path.join(PROCESSING_DIR, f)); } catch {}
+        }
+      }
+    }
+    if (lastError) throw lastError;
 
     const wavPath = path.join(PROCESSING_DIR, `${jobId}_raw.wav`);
 
