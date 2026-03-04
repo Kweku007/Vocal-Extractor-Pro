@@ -24,12 +24,33 @@ export async function fetchVideoTitle(url: string): Promise<string> {
     }
   } catch {}
 
-  const { stdout } = await execFileAsync(
-    YT_DLP_PATH,
-    ["--no-playlist", "--print", "title", url],
-    { timeout: 15000 }
-  );
-  return stdout.trim() || "Unknown Title";
+  try {
+    const pageRes = await fetch(url, {
+      signal: AbortSignal.timeout(10000),
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; bot)" },
+    });
+    if (pageRes.ok) {
+      const html = await pageRes.text();
+      const ogMatch = html.match(/<meta[^>]*property="og:title"[^>]*content="([^"]+)"/);
+      if (ogMatch?.[1]) return ogMatch[1].replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/&quot;/g, '"');
+      const titleMatch = html.match(/<title>([^<]+)<\/title>/);
+      if (titleMatch?.[1]) {
+        const title = titleMatch[1].replace(" - YouTube", "").trim();
+        if (title) return title;
+      }
+    }
+  } catch {}
+
+  try {
+    const { stdout } = await execFileAsync(
+      YT_DLP_PATH,
+      ["--no-playlist", "--print", "title", url],
+      { timeout: 15000 }
+    );
+    if (stdout.trim()) return stdout.trim();
+  } catch {}
+
+  return "Unknown Title";
 }
 
 const JOB_TTL_MS = 30 * 60 * 1000;
