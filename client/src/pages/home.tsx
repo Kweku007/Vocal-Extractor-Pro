@@ -251,7 +251,7 @@ export default function Home() {
               className="text-4xl font-bold tracking-tight mb-3"
               data-testid="text-title"
             >
-              Backing Vocal
+              Backing Vocalist Pro
             </h1>
             <p
               className="text-muted-foreground text-lg max-w-md mx-auto"
