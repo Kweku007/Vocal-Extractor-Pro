@@ -84,38 +84,20 @@ export async function downloadYoutubeAudio(
   try {
     let title = await fetchVideoTitle(url);
 
+    const baseArgs = [
+      "--no-playlist",
+      "--js-runtimes", "node",
+      "--remote-components", "ejs:github",
+    ];
+    const outputArgs = ["-x", "--audio-quality", "0", "-o", outputTemplate, url];
+
     const dlConfigs = [
-      [
-        "--no-playlist",
-        "--js-runtimes", "node",
-        "--remote-components", "ejs:github",
-        "-x",
-        "--audio-quality", "0",
-        "-o", outputTemplate,
-        url,
-      ],
-      [
-        "--no-playlist",
-        "--js-runtimes", "node",
-        "--remote-components", "ejs:github",
-        "--extractor-args", "youtube:player_client=web_music,web",
-        "--geo-bypass",
-        "-x",
-        "--audio-quality", "0",
-        "-o", outputTemplate,
-        url,
-      ],
-      [
-        "--no-playlist",
-        "--js-runtimes", "node",
-        "--remote-components", "ejs:github",
-        "--extractor-args", "youtube:player_client=ios,web",
+      [...baseArgs, "--extractor-args", "youtube:player_client=mediaconnect", ...outputArgs],
+      [...baseArgs, ...outputArgs],
+      [...baseArgs, "--extractor-args", "youtube:player_client=web_music,web", "--geo-bypass", ...outputArgs],
+      [...baseArgs, "--extractor-args", "youtube:player_client=ios,web",
         "--user-agent", "com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)",
-        "-x",
-        "--audio-quality", "0",
-        "-o", outputTemplate,
-        url,
-      ],
+        ...outputArgs],
     ];
 
     let lastError: Error | null = null;
@@ -164,7 +146,11 @@ export async function downloadYoutubeAudio(
 
     return { audioPath: wavPath, title };
   } catch (error: any) {
-    throw new Error(`Failed to download audio: ${error.message}`);
+    const msg = error.message || "";
+    if (msg.includes("Sign in") || msg.includes("not a bot") || msg.includes("confirm you")) {
+      throw new Error("YouTube is blocking downloads from this server. This is a known limitation with cloud-hosted servers. Please try again in a few minutes, or try a different video.");
+    }
+    throw new Error(`Failed to download audio. Please check that the YouTube URL is valid and the video is publicly accessible.`);
   }
 }
 
