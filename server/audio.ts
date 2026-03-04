@@ -15,6 +15,15 @@ if (!fs.existsSync(PROCESSING_DIR)) {
 }
 
 export async function fetchVideoTitle(url: string): Promise<string> {
+  try {
+    const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+    const res = await fetch(oembedUrl, { signal: AbortSignal.timeout(10000) });
+    if (res.ok) {
+      const data = await res.json() as { title?: string };
+      if (data.title) return data.title;
+    }
+  } catch {}
+
   const { stdout } = await execFileAsync(
     YT_DLP_PATH,
     ["--no-playlist", "--print", "title", url],
