@@ -28,10 +28,13 @@ export async function registerRoutes(
       if (!parsed.success) {
         return res.status(400).json({ message: parsed.error.errors[0].message });
       }
+      console.log(`[preview] Fetching title for: ${parsed.data.url}`);
       const title = await fetchVideoTitle(parsed.data.url);
+      console.log(`[preview] Got title: ${title}`);
       res.json({ title });
     } catch (error: any) {
-      res.status(500).json({ message: error.message || "Failed to fetch video info" });
+      console.error(`[preview] Error:`, error.message);
+      res.json({ title: "Unknown Title" });
     }
   });
 

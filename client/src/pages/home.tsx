@@ -84,7 +84,9 @@ export default function Home() {
       return res.json();
     },
     onSuccess: (data: { title: string }) => {
-      setVideoTitle(data.title);
+      if (data.title && data.title !== "Unknown Title") {
+        setVideoTitle(data.title);
+      }
     },
     onError: () => {
       setVideoTitle(null);

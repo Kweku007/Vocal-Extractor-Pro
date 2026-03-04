@@ -27,11 +27,16 @@ export async function fetchVideoTitle(url: string): Promise<string> {
   try {
     const pageRes = await fetch(url, {
       signal: AbortSignal.timeout(10000),
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; bot)" },
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+      redirect: "follow",
     });
     if (pageRes.ok) {
       const html = await pageRes.text();
-      const ogMatch = html.match(/<meta[^>]*property="og:title"[^>]*content="([^"]+)"/);
+      const ogMatch = html.match(/<meta[^>]*property="og:title"[^>]*content="([^"]+)"/) ||
+                       html.match(/<meta[^>]*content="([^"]+)"[^>]*property="og:title"/);
       if (ogMatch?.[1]) return ogMatch[1].replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/&quot;/g, '"');
       const titleMatch = html.match(/<title>([^<]+)<\/title>/);
       if (titleMatch?.[1]) {
