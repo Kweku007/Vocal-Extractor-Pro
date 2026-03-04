@@ -514,7 +514,7 @@ export default function Home() {
                   Key Detection
                 </Badge>
                 <Badge variant="outline">
-                  <Mic2 className="w-3 h-3 mr-1" />
+                  <Music2 className="w-3 h-3 mr-1" />
                   Vocal Extraction
                 </Badge>
                 <Badge variant="outline">
