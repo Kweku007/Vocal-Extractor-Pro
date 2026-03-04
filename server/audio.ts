@@ -8,6 +8,7 @@ import { MUSICAL_KEYS } from "@shared/schema";
 const execFileAsync = promisify(execFile);
 
 const PROCESSING_DIR = path.join(process.cwd(), "processing");
+const YT_DLP_PATH = path.join(process.cwd(), ".pythonlibs", "bin", "yt-dlp");
 
 if (!fs.existsSync(PROCESSING_DIR)) {
   fs.mkdirSync(PROCESSING_DIR, { recursive: true });
@@ -37,35 +38,47 @@ export async function downloadYoutubeAudio(
   const outputTemplate = path.join(PROCESSING_DIR, `${jobId}_raw.%(ext)s`);
 
   try {
-    const { stdout } = await execFileAsync(
-      "yt-dlp",
+    let title = "Unknown Title";
+    try {
+      const { stdout: titleOut } = await execFileAsync(
+        YT_DLP_PATH,
+        ["--no-playlist", "--print", "title", url],
+        { timeout: 30000 }
+      );
+      title = titleOut.trim() || "Unknown Title";
+    } catch {}
+
+    await execFileAsync(
+      YT_DLP_PATH,
       [
         "--no-playlist",
         "-x",
-        "--audio-format", "wav",
         "--audio-quality", "0",
         "-o", outputTemplate,
-        "--print", "filename",
-        "--print", "title",
         url,
       ],
-      { timeout: 120000 }
+      { timeout: 120000, maxBuffer: 50 * 1024 * 1024 }
     );
 
-    const lines = stdout.trim().split("\n");
-    const title = lines.length > 1 ? lines[lines.length - 1] : "Unknown Title";
-
     const wavPath = path.join(PROCESSING_DIR, `${jobId}_raw.wav`);
+
+    const files = fs.readdirSync(PROCESSING_DIR).filter(f => f.startsWith(`${jobId}_raw.`) && !f.endsWith(".wav"));
+    if (files.length > 0) {
+      const srcPath = path.join(PROCESSING_DIR, files[0]);
+      await execFileAsync(
+        "ffmpeg",
+        ["-i", srcPath, "-ar", "44100", "-ac", "2", wavPath, "-y"],
+        { timeout: 60000, maxBuffer: 10 * 1024 * 1024 }
+      );
+      try { fs.unlinkSync(srcPath); } catch {}
+    }
+
     if (!fs.existsSync(wavPath)) {
-      const files = fs.readdirSync(PROCESSING_DIR).filter(f => f.startsWith(`${jobId}_raw.`));
-      if (files.length > 0) {
-        const srcPath = path.join(PROCESSING_DIR, files[0]);
-        await execFileAsync(
-          "ffmpeg",
-          ["-i", srcPath, "-ar", "44100", "-ac", "2", wavPath, "-y"],
-          { timeout: 60000 }
-        );
-        if (srcPath !== wavPath) fs.unlinkSync(srcPath);
+      const allFiles = fs.readdirSync(PROCESSING_DIR).filter(f => f.startsWith(`${jobId}_raw`));
+      if (allFiles.length > 0 && allFiles[0].endsWith(".wav")) {
+        // already wav
+      } else {
+        throw new Error("Downloaded file could not be converted to WAV. Files found: " + allFiles.join(", "));
       }
     }
 

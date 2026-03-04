@@ -189,17 +189,22 @@ export async function registerRoutes(
 }
 
 async function processAudio(jobId: string, url: string) {
+  console.log(`[${jobId}] Starting audio processing for: ${url}`);
   storage.updateJob(jobId, { status: "downloading", progress: 10 });
 
   const { audioPath, title } = await downloadYoutubeAudio(url, jobId);
+  console.log(`[${jobId}] Downloaded audio: ${audioPath}, title: ${title}`);
+  console.log(`[${jobId}] File exists: ${fs.existsSync(audioPath)}`);
   storage.updateJob(jobId, { title, progress: 40 });
 
   storage.updateJob(jobId, { status: "separating", progress: 50 });
   const backingPath = await extractBackingVocals(audioPath, jobId);
+  console.log(`[${jobId}] Extracted backing vocals: ${backingPath}`);
   storage.updateJob(jobId, { progress: 75 });
 
   storage.updateJob(jobId, { status: "detecting_key", progress: 80 });
   const detectedKey = await detectKey(backingPath);
+  console.log(`[${jobId}] Detected key: ${detectedKey}`);
 
   storage.updateJob(jobId, {
     status: "complete",
