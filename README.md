@@ -2,8 +2,6 @@
 
 **Extract and isolate backing vocals from any YouTube video — directly in your browser.**
 
-Live app: [https://vocal-extractor-pro.replit.app](https://vocal-extractor-pro.replit.app)
-
 ---
 
 ## What it does
