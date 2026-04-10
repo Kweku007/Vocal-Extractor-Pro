@@ -20,7 +20,6 @@ Backing Vocalist Pro takes a YouTube link and does the heavy lifting for you:
 
 ## How to use it
 
-1. Open the app at [https://vocal-extractor-pro.replit.app](https://vocal-extractor-pro.replit.app)
 2. Paste a YouTube URL into the input bar — the video title will appear as a preview
 3. Click **Process** and wait while the audio is downloaded and separated (typically 1–3 minutes depending on track length)
 4. Once complete, the detected key is shown and audio playback becomes available
